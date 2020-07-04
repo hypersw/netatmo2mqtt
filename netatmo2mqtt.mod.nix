@@ -16,10 +16,24 @@ in
   {
     services.netatmo2mqtt = 
     {
-      enable = mkOption 
+      enable = mkEnableOption "the Netatmo into MQTT bridge"; 
+      
+      clientId = mkOption
       {
-        default = false;
-        description = "Whether to enable the bridge.";
+        type = types.str;
+        description = "The client_id which you get when you register an application on Netatmo website (https://dev.netatmo.com/myaccount/createanapp).";
+      };
+      
+      clientSecret = mkOption
+      {
+        type = types.str;
+        description = "The cleartext client_secret which you get when you register an application on Netatmo website (https://dev.netatmo.com/myaccount/createanapp).";
+      };
+      
+      refreshToken = mkOption
+      {
+        type = types.str;
+        description = "TODO.";
       };
     };
   };
@@ -51,7 +65,7 @@ in
       serviceConfig = 
       {
         #Type = "exec"; # TODO: why cannot set exec?
-        ExecStart  = "${pathExe} -c '<CLIENT_ID>' -a '<CLIENT_SECRET>' -r '<REFRESH_TOKEN>'";
+        ExecStart  = "${pathExe} -c '${cfg.clientId}' -a '${cfg.clientSecret}' -r '${cfg.refreshToken}'";
         
         Restart = "always";
         RestartSec = "10";
