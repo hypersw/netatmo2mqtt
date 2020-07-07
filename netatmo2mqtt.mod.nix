@@ -1,4 +1,4 @@
-{ config, lib, pkgs, netatmo2mqtt, ... }:
+{ config, lib, pkgs, netatmo2mqtt, python38, ... }:
 
 with lib;
 
@@ -16,24 +16,64 @@ in
   {
     services.netatmo2mqtt = 
     {
-      enable = mkEnableOption "the Netatmo into MQTT bridge"; 
+      enable = mkEnableOption "the Netatmo into MQTT bridge";
       
-      clientId = mkOption
+      verbose = mkOption
       {
-        type = types.str;
-        description = "The client_id which you get when you register an application on Netatmo website (https://dev.netatmo.com/myaccount/createanapp).";
+        type = types.bool;
+        default = false;
+        description = "Enable debug messages.";
+      };      
+      
+      netatmo = 
+      {
+          clientId = mkOption
+          {
+            type = types.str;
+            description = "The client_id which you get when you register an application on Netatmo website (https://dev.netatmo.com/myaccount/createanapp).";
+          };
+          
+          clientSecret = mkOption
+          {
+            type = types.str;
+            description = "The cleartext client_secret which you get when you register an application on Netatmo website (https://dev.netatmo.com/myaccount/createanapp).";
+          };
+          
+          refreshToken = mkOption
+          {
+            type = types.str;
+            description = "TODO.";
+          };
       };
       
-      clientSecret = mkOption
+      mqtt = 
       {
-        type = types.str;
-        description = "The cleartext client_secret which you get when you register an application on Netatmo website (https://dev.netatmo.com/myaccount/createanapp).";
-      };
-      
-      refreshToken = mkOption
-      {
-        type = types.str;
-        description = "TODO.";
+        hostname = mkOption
+        {
+          type = types.str;
+          description = "Specify the MQTT host to connect to.";
+        };
+        
+        topic = mkOption
+        {
+          type = types.str;
+          default = "sensor/mainroom";
+          description = "The MQTT topic on which to publish the message (if it was a success).";
+        };
+        
+        topicSetpoint = mkOption
+        {
+          type = types.str;
+          default = "sensor/setpoint";
+          description = "The MQTT topic on which to publish the message with the current setpoint temperature (if it was a success).";
+        };
+        
+        topicError = mkOption
+        {
+          type = types.str;
+          default = "error/sensor/mainroom";
+          description = "The MQTT topic on which to publish the message (if it wasn't a success).";
+        }; 
       };
     };
   };
@@ -54,7 +94,8 @@ in
 
     systemd.services.netatmo2mqtt = 
     let
-      pathExe = "${pkgself.out}/netatmo2MQTT.py";
+      pathInterpreter = "${pkgs.python38.withPackages(ps: [ ps.requests ps.paho-mqtt ])}/bin/python3";
+      pathPy = "${pkgself.out}/netatmo2MQTT.py";
       dirlocalname = "netatmo2mqtt";      
     in
     {
@@ -65,7 +106,7 @@ in
       serviceConfig = 
       {
         #Type = "exec"; # TODO: why cannot set exec?
-        ExecStart  = "${pathExe} -c '${cfg.clientId}' -a '${cfg.clientSecret}' -r '${cfg.refreshToken}'";
+        ExecStart  = "${pathInterpreter} ${pathPy} --client-id '${cfg.netatmo.clientId}' --client-secret '${cfg.netatmo.clientSecret}' --refresh-token '${cfg.netatmo.refreshToken}' --mqtt-host '${cfg.mqtt.hostname}' --topic '${cfg.mqtt.topic}' --topic-setpoint '${cfg.mqtt.topicSetpoint}' --topic-error '${cfg.mqtt.topicError}' ${if cfg.verbose then "--verbose" else ""}";
         
         Restart = "always";
         RestartSec = "10";

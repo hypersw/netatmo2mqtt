@@ -1,6 +1,6 @@
 {stdenv, lib, python38, fetchFromGitHub}:
 with stdenv.lib;
-python38.pkgs.buildPythonPackage rec 
+python38.pkgs.buildPythonApplication rec 
 {
   pname = "netatmo2mqtt";
   version = "1.0";
@@ -19,14 +19,16 @@ python38.pkgs.buildPythonPackage rec
     requests 
     paho-mqtt
   ];
+  
+  format = "other";
 
-  buildPhase = ''
-  python -O -m compileall .
-  '';
-
+#  buildPhase = ''
+#  python -O -m compileall .
+#  '';
+#
   installPhase = ''
     mkdir "$out"
-    cp -r *.py ./__pycache__ "$out/"
+    cp -r *.py "$out/"
     echo "Files in outdir:"
     ls -la "$out"
   '';
